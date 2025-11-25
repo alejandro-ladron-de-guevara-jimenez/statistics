@@ -1,0 +1,436 @@
+---
+title: "Práctica Estadística"
+author: "alejandro"
+date: "2024-12-07"
+output: html_document
+---
+# ESTUDIO DESCRIPTIVO
+
+```{r}
+library(readxl)
+library(ggplot2)
+```
+
+```{r}
+datos<-read_excel ("Práctica_Estadística_Final.xlsx")
+```
+
+# Resumen estadístico de la variable PTS
+```{r}
+summary(datos$PTS)
+```
+
+# Solo utilizado para ver como son los datos
+```{r}
+head(datos)
+```
+
+# Convertir la columna PTS en variable numerica (el excel detectaba algunos valores como fechas y algunas variables se importaron como categoricas)
+```{r}
+datos$PTS <- as.numeric(as.character(datos$PTS))
+```
+
+# Calcular medidas de tendencia central y dispersion
+```{r}
+media <- mean(datos$PTS, na.rm = TRUE)
+mediana <- median(datos$PTS, na.rm = TRUE)
+desviacion <- sd(datos$PTS, na.rm = TRUE)
+rango <- range(datos$PTS, na.rm = TRUE)
+varianza <- var(datos$PTS, na.rm = TRUE)
+moda <- function(x) {
+  ux <- unique(x)
+  ux[which.max(tabulate(match(x, ux)))]
+}
+moda_puntos <- moda(datos$PTS)
+cuartiles <- quantile(datos$PTS, c(0.25, 0.75), na.rm = TRUE)
+cuartil_inferior <- cuartiles[1]
+cuartil_superior <- cuartiles[2]
+coef_variacion <- (sd(datos$PTS, na.rm = TRUE) / mean(datos$PTS, na.rm = TRUE)) * 100
+iqr <- IQR(datos$PTS, na.rm = TRUE)
+asimetria <- skewness(datos$PTS, na.rm = TRUE)
+curtosis <- kurtosis(datos$PTS, na.rm = TRUE)
+covarianzaFGM <- cov(datos$FGM, datos$PTS)
+covarianzaMIN <- cov(datos$MIN, datos$PTS)
+covarianzaAST <- cov(datos$AST, datos$PTS)
+
+
+# Mostrar resultados
+
+cat("Media:", media, "\n")
+cat("Mediana:", mediana, "\n")
+cat("Desviación estándar:", desviacion, "\n")
+cat("Rango:", rango, "\n")
+cat("Varianza:", varianza, "\n")
+cat("Moda:", moda_puntos, "\n")
+cat("Cuartil Inferior (Q1):", cuartil_inferior, "\n")
+cat("Cuartil Superior (Q3):", cuartil_superior, "\n")
+cat("Coeficiente de Variación:", coef_variacion, "%", "\n")
+cat("Rango Intercuartílico (IQR):", iqr, "\n")
+cat("Asimetría:", asimetria, "\n")
+cat("Curtosis:", curtosis, "\n")
+cat("Covarianza entre PTS y FGM:", covarianzaFGM, "\n")
+cat("Covarianza entre PTS y MIN:", covarianzaMIN, "\n")
+cat("Covarianza entre PTS y AST:", covarianzaAST, "\n")
+```
+
+# Regresion simple entre PTS y FGM. Podemos ver por su muy pequeño p valor y su alto R cuadrado, que FGM es una variable con mucha relacion a PTS
+```{r}
+modelo_FGM <- lm(PTS ~ FGM, data = datos)
+summary(modelo_FGM)
+```
+
+# Regresion simple entre PTS y MIN. Podemos ver que tiene un p valor bastante pequeño aunque su R cuadrado tambien lo es, lo que hace que MIN este solo ligeramente relacionado a PTS
+```{r}
+modelo_MIN <- lm(PTS ~ MIN, data = datos)
+summary(modelo_MIN)
+```
+
+# Regresion simple entre PTS y AST. Podemos ver que tiene un p valor bastante pequeño aunque su R cuadrado tambien lo es mucho, lo que hace que AST este solo ligeramente relacionado a PTS
+```{r}
+modelo_AST <- lm(PTS ~ AST, data = datos)
+summary(modelo_AST)
+```
+
+# Plot de PTS con FGM donde se puede ver su notable relacion 
+```{r}
+plot(datos$FGM, datos$PTS, 
+     main = "Relación entre Minutos y Puntos",
+     xlab = "Minutos Jugados",
+     ylab = "Puntos Anotados",
+     pch = 16, col = "blue")
+abline(lm(datos$PTS ~ datos$FGM), col = "red", lwd = 2)
+```
+
+# Barplots de las variables
+```{r}
+# Barplot de PTS por jugador
+barplot(datos$PTS, 
+        names.arg = datos$Jugador, 
+        main = "Media de Puntos por Jugador por partido", 
+        ylab = "Puntos", 
+        col = "orange", 
+        las = 2,  
+        cex.names = 0.7) 
+
+# Boxplot de PTS
+boxplot(datos$PTS, 
+        main = "Gráfico de Caja de Media de Puntos por partido (PTS)", 
+        ylab = "Puntos", 
+        col = "lightblue", 
+        border = "black")
+
+# Histograma de PTS
+hist(datos$PTS, 
+     main = "Histograma de Media de Puntos por partido (PTS)", 
+     xlab = "Puntos", 
+     ylab = "Frecuencia", 
+     col = "lightgreen", 
+     border = "black")
+
+# Crear categorías de puntos (puedes ajustar los rangos)
+categorias <- cut(datos$PTS, breaks = 3, labels = c("Bajo", "Medio", "Alto"))
+
+# Crear tabla de frecuencias por categorías
+frecuencia <- table(categorias)
+
+# Diagrama de tarta
+pie(frecuencia, 
+    main = "Distribución de Media de Puntos por partido (Categorías)", 
+    col = c("lightblue", "lightgreen", "orange"), 
+    labels = paste(names(frecuencia), "\n", frecuencia))
+```
+
+# AJUSTE DE DISTRIBUCIONES
+
+```{r}
+# Histograma y curva de densidad para los datos de PTS
+hist(datos$PTS, 
+     probability = TRUE, 
+     main = "Histograma de PTS con Curva de Densidad", 
+     xlab = "PTS", 
+     col = "lightblue", 
+     border = "black")
+lines(density(datos$PTS), col = "red", lwd = 2)
+```
+
+```{r}
+fit_normal <- fitdist(datos$PTS, "norm")
+summary(fit_normal)
+```
+
+```{r}
+fit_lognormal <- fitdist(datos$PTS, "lnorm")
+summary(fit_lognormal)
+```
+
+```{r}
+fit_exponential <- fitdist(datos$PTS, "exp")
+summary(fit_exponential)
+```
+
+```{r}
+fit_poisson <- fitdist(round(datos$PTS), "pois")
+summary(fit_poisson)
+```
+
+```{r}
+fit_binomial <- fitdist(round(datos$PTS), "binom", fix.arg = list(size = 50))
+summary(fit_binomial)
+```
+
+```{r}
+# Comparar AIC de las distribuciones ajustadas
+aic_values <- c(
+  Normal = fit_normal$aic,
+  Lognormal = fit_lognormal$aic,
+  Exponencial = fit_exponential$aic,
+  Poisson = fit_poisson$aic,
+  Binomial = fit_binomial$aic
+)
+aic_values  # La distribución con menor AIC es la mejor. Por lo tanto, la distribucion lognormal es la mejor
+```
+
+```{r}
+# Histograma y ajuste lognormal
+hist(datos$PTS, 
+     probability = TRUE, 
+     main = "Ajuste de la Distribución Lognormal", 
+     xlab = "PTS", 
+     col = "lightblue", 
+     border = "black")
+curve(dlnorm(x, meanlog = fit_lognormal$estimate["meanlog"], 
+             sdlog = fit_lognormal$estimate["sdlog"]), 
+      col = "darkgreen", 
+      lwd = 2, 
+      add = TRUE)
+```
+
+# Finalmente representamos graficamente la distribucion lognormal ajustada de la variable PTS
+```{r}
+plot(fit_lognormal)
+```
+
+# INTERVALOS DE CONFIANZA Y CONTRASTE DE HIPÓTESIS
+
+```{r}
+# Calcular media y desviación estándar
+media <- mean(datos$PTS, na.rm = TRUE)
+desviacion <- sd(datos$PTS, na.rm = TRUE)
+n <- length(datos$PTS)
+
+# Valor Z para un intervalo de confianza del 95% (1.96)
+z <- qnorm(0.975)
+```
+
+```{r}
+# Test de normalidad (Shapiro-Wilk)
+shapiro_test <- shapiro.test(datos$PTS)
+
+# Mostrar el resultado
+cat("p-value del test de Shapiro-Wilk:", shapiro_test$p.value, "\n")
+
+# Decisión: Si el valor p es menor que 0.05, rechazamos la normalidad
+if (shapiro_test$p.value < 0.05) {
+  cat("Los datos no siguen una distribución normal (Shapiro-Wilk.\n")
+} else {
+  cat("Los datos siguen una distribución normal (Shapiro-Wilk.\n")
+}
+
+# Test de Anderson-Darling
+anderson_test <- ad.test(datos$PTS)
+cat("p-value del test de Anderson-Darling:", anderson_test$p.value, "\n")
+# Decisión: Si el valor p es menor que 0.05, rechazamos la normalidad
+if (anderson_test$p.value < 0.05) {
+  cat("Los datos no siguen una distribución normal (Anderson-Darling).\n")
+} else {
+  cat("Los datos siguen una distribución normal (Anderson-Darling).\n")
+}
+
+# Test de Cramér-von Mises
+cramer_test <- cvm.test(datos$PTS)
+cat("p-value del test de Cramér-von Mises:", cramer_test$p.value, "\n")
+# Decisión: Si el valor p es menor que 0.05, rechazamos la normalidad
+if (cramer_test$p.value < 0.05) {
+  cat("Los datos no siguen una distribución normal (Cramér-von Mises).\n")
+} else {
+  cat("Los datos siguen una distribución normal (Cramér-von Mises).\n")
+}
+
+# Test de Lilliefors (modificado de Kolmogorov-Smirnov)
+lillie_test <- lillie.test(datos$PTS)
+# Decisión: Si el valor p es menor que 0.05, rechazamos la normalidad
+cat("p-value del test de Lilliefors:", lillie_test$p.value, "\n")
+if (lillie_test$p.value < 0.05) {
+  cat("Los datos no siguen una distribución normal (Lilliefors).\n")
+} else {
+  cat("Los datos siguen una distribución normal (Lilliefors).\n")
+}
+
+# Test de Pearson Chi-Square
+pearson_test <- pearson.test(datos$PTS)
+cat("p-value del test de Pearson Chi-Square:", pearson_test$p.value, "\n")
+# Decisión: Si el valor p es menor que 0.05, rechazamos la normalidad
+if (pearson_test$p.value < 0.05) {
+  cat("Los datos no siguen una distribución normal (Pearson Chi-Square).\n")
+} else {
+  cat("Los datos siguen una distribución normal (Pearson Chi-Square).\n")
+}
+```
+
+```{r}
+# Intervalo de confianza para la media con varianza conocida
+error_margin <- z * (desviacion / sqrt(n))
+ic_media <- c(media - error_margin, media + error_margin)
+
+# Mostrar el intervalo de confianza
+cat("Intervalo de confianza para la media (95%, varianza conocida):", ic_media, "\n")
+```
+
+```{r}
+# Intervalo de confianza para la media con varianza desconocida
+t <- qt(1 - (1 - 0.95) / 2, df = n - 1)  # Valor crítico de la t-Student
+error_margin <- t * (sd(datos$PTS) / sqrt(n))  # Usando desviación estándar muestral
+ic_media <- c(media - error_margin, media + error_margin)
+
+# Mostrar el intervalo de confianza
+cat("Intervalo de confianza para la media (95%, varianza desconocida):", ic_media, "\n")
+```
+
+```{r}
+# Intervalo de confianza para la desviación estándar
+alpha <- 0.05
+chi2_lower <- qchisq(1 - alpha / 2, df = n - 1)
+chi2_upper <- qchisq(alpha / 2, df = n - 1)
+
+# IC para la desviación estándar
+ic_desviacion <- sqrt(((n - 1) * desviacion^2) / chi2_upper)
+ic_desviacion_max <- sqrt(((n - 1) * desviacion^2) / chi2_lower)
+
+# Mostrar el intervalo de confianza
+cat("Intervalo de confianza para la desviación estándar (95%):", ic_desviacion, "a", ic_desviacion_max, "\n")
+```
+
+```{r}
+# Intervalo de confianza con varianza conocida (z.test)
+z_result <- z.test(x = datos$PTS, 
+                   sigma.x = desviacion,  # Desviación estándar de la población
+                   conf.level = 0.95)  # Nivel de confianza
+
+# Mostrar el intervalo de confianza
+cat("Intervalo de confianza para la media (varianza conocida):", z_result$conf.int, "\n")
+```
+
+```{r}
+# Intervalo de confianza con varianza desconocida (t.test)
+t_result <- t.test(x = datos$PTS, 
+                   conf.level = 0.95)  # Nivel de confianza
+
+# Mostrar el intervalo de confianza
+cat("Intervalo de confianza para la media (varianza desconocida):", t_result$conf.int, "\n")
+```
+
+```{r}
+# Intervalo de confianza para la desviación estándar
+ic_desviacion <- varTest(datos$PTS)$conf.int
+
+# Mostrar el resultado
+cat("Intervalo de confianza para la desviación estándar (95%):", ic_desviacion, "\n")
+```
+
+```{r}
+# Hipótesis: H0: media = 20, H1: media != 20
+media_hipotesis <- 20
+
+# Estadístico de prueba (t de Student)
+t_value <- (media - media_hipotesis) / (desviacion / sqrt(n))
+
+# Grados de libertad
+df <- n - 1
+
+# Valor p para contraste bilateral
+p_value <- 2 * (1 - pt(abs(t_value), df))
+
+# Mostrar resultados
+cat("Valor t:", t_value, "\n")
+cat("Valor p:", p_value, "\n")
+
+# Decisión: Si el valor p es menor que 0.05, rechazamos la hipótesis nula
+if (p_value < 0.05) {
+  cat("Rechazamos la hipótesis nula. La media es diferente de", media_hipotesis, "\n")
+} else {
+  cat("No rechazamos la hipótesis nula. No hay evidencia suficiente para decir que la media es diferente de", media_hipotesis, "\n")
+}
+```
+
+
+# REGRESION MULTIPLE
+
+# Dibujamos los graficos XY de cada variable con la variable dependiente para observar sus relaciones
+```{r}
+plot(datos)
+```
+
+# Comprobamos que todas las variables sean de un tipo especifico para que se puedan mostrar
+```{r}
+sapply(datos, class)
+datos$PTS <- as.numeric(datos$PTS)
+datos$MIN <- as.numeric(datos$MIN)
+datos$AST <- as.numeric(datos$AST)
+datos$FGM <- as.numeric(datos$FGM)
+```
+
+# Usamos boxplot para mostrar los diagramas de caja de las variables cuantitativas
+```{r}
+par(mfrow=c(2,4))
+boxplot(datos$PTS, xlab = "PTS")
+boxplot(datos$MIN, xlab = "MIN")
+boxplot(datos$AST, xlab = "AST")
+boxplot(datos$FGM, xlab = "FGM")
+```
+
+# Para mejor las relaciones entre las variables y la principal mostramos su grafico XY
+```{r}
+par(mfrow=c(2,3))
+plot(datos$MIN, datos$PTS)
+plot(datos$AST, datos$PTS)
+plot(datos$FGM, datos$PTS)
+```
+
+# Como se ha podido observar en los graficos la variable de MIN tenia una gran cantidad de puntos atipicos lo que podria afectar negativamente a nuestro analisis. Ahora creamos un modelo que por ahora tendra todas las variables.
+```{r}
+model1 <- lm(PTS ~ MIN + AST + FGM, data = datos)
+summary(model1)
+```
+
+# Estos son los graficos residuales del primer modelo con todas las variables.
+```{r}
+par(mfrow=c(2,2))
+plot(model1)
+```
+
+# Como se ha podido ver en el anterior modelo, la variable MIN era muy poco significativa ya que su Pr(>|t|) era muy alto, por lo que en el nuevo modelo la eliminaremos.
+```{r}
+model2 <- lm(PTS ~ FGM + AST, data = datos)
+summary(model2)
+```
+
+# En el nuevo modelo se puede apreciar que la variable FGM es muy significativa para el analisis y la variable AST es medianamente significativa por lo que no requerira eliminarse del modelo.
+
+# Estos son los graficos residuales del segundo modelo que no tiene la variable MIN.
+```{r}
+par(mfrow=c(2,2))
+plot(model2)
+```
+
+```{r}
+hist(model2$residuals,
+ probability = TRUE, # histogram has a total area = 1
+ xlab = "Residuals")
+curve(dnorm(x, mean(model2$residuals), sd(model2$residuals)),
+ col="blue", lwd=2, add=TRUE, yaxt="n")
+```
+
+```{r}
+pearson.test(model2$residuals)
+```
+
